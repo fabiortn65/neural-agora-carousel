@@ -1,0 +1,14 @@
+{
+  "name": "neural-agora-carousel",
+  "version": "1.0.0",
+  "description": "Genera le 4 immagini del carosello Instagram giornaliero di Neural Agorà (stile Ghost vino/oro + Blogger crema) a partire da titolo/estratto/immagine dei due siti.",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "playwright-core": "^1.47.0"
+  }
+}
