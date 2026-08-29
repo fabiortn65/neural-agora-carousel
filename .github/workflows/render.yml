@@ -27,8 +27,8 @@ jobs:
 
       - run: npx playwright install --with-deps chromium
 
-      - name: Verifica ffmpeg (serve per cover.mp4)
-        run: ffmpeg -version
+      - name: Installa ffmpeg (serve per cover.mp4)
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Genera le 4 slide + il video di copertina
         env:
