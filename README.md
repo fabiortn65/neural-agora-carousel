@@ -6,12 +6,13 @@ giornalieri di Neural Agorà a partire dai dati dell'ultimo articolo di ciascun 
 
 - le 4 immagini del carosello (copertina, articolo Ghost, articolo Blogger, CTA finale);
 - `cover.mp4`, breve video di reveal della sola copertina (usato nel carosello);
-- `reel.mp4`, **reel verticale 1080×1920 completo** (~27,6s) con tipografia cinetica
+- `reel.mp4`, **reel verticale 1080×1920 completo** (~27,9s) con tipografia cinetica
   (titoli che entrano parola per parola) ed effetto Ken Burns sulle foto dei due articoli —
   copertina → slide Ghost → slide Blogger → CTA, stesso stile vino/oro e crema del resto
   del brand. Nessuna voce narrante: solo testo animato (pensato per essere guardato anche
-  muto, come la maggior parte dei reel). Non include ancora una colonna sonora — vedi
-  "Prossimi passi" sotto.
+  muto, come la maggior parte dei reel). Colonna sonora fissa: "Minimal Piano and Cello" di
+  Samuel F. Johanns (Pixabay Music, royalty-free), scaricata ad ogni run e mixata con
+  ffmpeg con fade-out finale di 2s — vedi `REEL_AUDIO_URL` in `render-daily.js`.
 
 Nessun costo ricorrente: il rendering gira su GitHub Actions (Playwright + ffmpeg), gli
 asset finiti vengono pubblicati gratis su GitHub Pages.
@@ -29,10 +30,6 @@ asset finiti vengono pubblicati gratis su GitHub Pages.
 
 ## Prossimi passi (non ancora fatto)
 
-- **Colonna sonora per `reel.mp4`**: va scelta una traccia royalty-free e passata a
-  `ffmpeg` in fase di conversione (`-i audio.mp3 -shortest`, mixata sul video già
-  renderizzato). Da decidere: traccia fissa o rotazione, e dove viene ospitato il file
-  audio.
 - **Scenario Make**: serve uno scenario (nuovo o il "Carosello giornaliero" riattivato)
   che faccia il dispatch e poi pubblichi `reel.mp4` come Reel su Instagram/Facebook —
   finora questo repo veniva chiamato solo dal vecchio scenario del carosello, disattivato

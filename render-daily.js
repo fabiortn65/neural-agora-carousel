@@ -12,6 +12,44 @@ const { coverSlide, coverSlideVideo, ghostSlide, bloggerSlide, ctaSlide, reelVid
 
 const OUT_DIR = path.join(__dirname, "docs", "img");
 
+// Colonna sonora fissa del reel, scelta da Fabio: "Minimal Piano and Cello"
+// di Samuel F. Johanns (Pixabay Music, royalty-free, Content ID registrato
+// ma licenza libera). Scaricata ad ogni run direttamente dalla CDN Pixabay:
+// il runner di GitHub Actions ha accesso di rete pieno (a differenza del
+// container dell'assistente), quindi non serve commitare il file nel repo.
+const REEL_AUDIO_URL = "https://cdn.pixabay.com/audio/2022/04/12/audio_936a0da49f.mp3";
+
+// Scarica la traccia audio e la mixa sotto il video già renderizzato:
+// la taglia alla durata esatta del reel e applica un fade-out di 2s finale
+// cosi' non si interrompe di netto. Il video resta invariato (-c:v copy),
+// solo l'audio viene codificato in AAC.
+async function addSoundtrack(videoPath, audioUrl, durationSec) {
+  const tmpAudio = path.join(os.tmpdir(), `reel-audio-${Date.now()}.mp3`);
+  const tmpOut = `${videoPath}.withaudio.mp4`;
+  try {
+    execFileSync("curl", ["-sS", "-L", "--fail", "-o", tmpAudio, audioUrl], { stdio: "inherit" });
+    const fadeStart = Math.max(0, durationSec - 2);
+    execFileSync("ffmpeg", [
+      "-y",
+      "-i", videoPath,
+      "-i", tmpAudio,
+      "-filter_complex",
+      `[1:a]atrim=0:${durationSec.toFixed(2)},afade=t=out:st=${fadeStart.toFixed(2)}:d=2,volume=0.85[a]`,
+      "-map", "0:v",
+      "-map", "[a]",
+      "-c:v", "copy",
+      "-c:a", "aac",
+      "-b:a", "128k",
+      "-shortest",
+      tmpOut,
+    ], { stdio: "inherit" });
+    fs.renameSync(tmpOut, videoPath);
+  } finally {
+    fs.rmSync(tmpAudio, { force: true });
+    fs.rmSync(tmpOut, { force: true });
+  }
+}
+
 function readPayload() {
   const raw = process.env.PAYLOAD;
   if (!raw || raw === "null" || raw.trim() === "") {
@@ -126,16 +164,20 @@ async function renderVideo(browser, html, outPath, durationMs = 4500, size = { w
     // Reel verticale 9:16 con tipografia cinetica (titolo/estratto animati) e
     // Ken Burns sulle foto dei due articoli — vedi templates.js (reelVideo)
     // per la timeline completa delle 4 scene.
+    const reelDurationSec = REEL_TOTAL + 0.3;
     await renderVideo(
       browser,
       reelVideo({ date: data.date, hook_headline: data.hook_headline, ghost, blogger }),
       path.join(OUT_DIR, "reel.mp4"),
-      Math.round(REEL_TOTAL * 1000) + 300,
+      Math.round(reelDurationSec * 1000),
       { width: 1080, height: 1920 }
     );
   } finally {
     await browser.close();
   }
+
+  // Colonna sonora: mixata dopo aver chiuso il browser (non serve Playwright).
+  await addSoundtrack(path.join(OUT_DIR, "reel.mp4"), REEL_AUDIO_URL, REEL_TOTAL + 0.3);
 
  console.log("Slide generate in", OUT_DIR);
 })().catch((err) => {
