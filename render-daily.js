@@ -18,6 +18,7 @@ const OUT_DIR = path.join(__dirname, "docs", "img");
 // gli asset del carosello giornaliero (cover.jpg, reel.mp4, ecc. in OUT_DIR),
 // cosi' i due sistemi possono coesistere con URL pubblici stabili e distinti.
 const WEEKLY_OUT_DIR = path.join(OUT_DIR, "weekly");
+const WEEKLY_PUBLIC_BASE = "https://fabiortn65.github.io/neural-agora-carousel/img/weekly";
 
 // Colonna sonora fissa del reel, scelta da Fabio: "Classical - Classical Song"
 // di The_Mountain (Pixabay Music, royalty-free). Scaricata ad ogni run
@@ -174,6 +175,31 @@ async function renderWeekly(browser, data) {
     path.join(WEEKLY_OUT_DIR, "reel.mp4"),
     Math.round((durationSec + 0.3) * 1000),
     { width: 1080, height: 1920 }
+  );
+
+  // manifest.json: elenca gli URL pubblici gia' pronti nel formato esatto
+  // richiesto dai moduli Instagram/Facebook di Make, cosi' lo scenario non
+  // deve ricostruire i nomi file da un conteggio articoli: li legge da qui
+  // con una singola chiamata HTTP. "v" e' un cache-bust per GitHub Pages/CDN.
+  const v = Date.now();
+  const url = (name) => `${WEEKLY_PUBLIC_BASE}/${name}?v=${v}`;
+  const igFiles = [{ video_url: url("cover.mp4"), media_type: "VIDEO" }];
+  const fbPhotos = [{ url: url("cover.jpg"), type: "url" }];
+  for (let i = 0; i < articles.length; i++) {
+    igFiles.push({ image_url: url(`article-${i + 1}.jpg`), media_type: "IMAGE" });
+    fbPhotos.push({ url: url(`article-${i + 1}.jpg`), type: "url" });
+  }
+  igFiles.push({ image_url: url("cta.jpg"), media_type: "IMAGE" });
+  fbPhotos.push({ url: url("cta.jpg"), type: "url" });
+
+  fs.writeFileSync(
+    path.join(WEEKLY_OUT_DIR, "manifest.json"),
+    JSON.stringify({
+      article_count: articles.length,
+      reel_url: url("reel.mp4"),
+      ig_files: igFiles,
+      fb_photos: fbPhotos,
+    }, null, 2)
   );
 
   return durationSec + 0.3;
