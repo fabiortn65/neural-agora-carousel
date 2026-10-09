@@ -1,18 +1,42 @@
-# Neural Agorà — Carosello Instagram giornaliero
+# Neural Agorà — Carosello + Reel Instagram giornaliero
 
-Servizio che genera le 4 immagini del carosello Instagram giornaliero di Neural Agorà
-(copertina, articolo Ghost, articolo Blogger, CTA finale), a partire dai dati dell'ultimo
-articolo di ciascun sito. Nessun costo ricorrente: solo hosting Railway, come gli altri
-progetti.
+Servizio che genera, da un'unica GitHub Action innescata da Make, gli asset social
+giornalieri di Neural Agorà a partire dai dati dell'ultimo articolo di ciascun sito
+(neuralagora.com e blog.neuralagora.com):
+
+- le 4 immagini del carosello (copertina, articolo Ghost, articolo Blogger, CTA finale);
+- `cover.mp4`, breve video di reveal della sola copertina (usato nel carosello);
+- `reel.mp4`, **reel verticale 1080×1920 completo** (~27,6s) con tipografia cinetica
+  (titoli che entrano parola per parola) ed effetto Ken Burns sulle foto dei due articoli —
+  copertina → slide Ghost → slide Blogger → CTA, stesso stile vino/oro e crema del resto
+  del brand. Nessuna voce narrante: solo testo animato (pensato per essere guardato anche
+  muto, come la maggior parte dei reel). Non include ancora una colonna sonora — vedi
+  "Prossimi passi" sotto.
+
+Nessun costo ricorrente: il rendering gira su GitHub Actions (Playwright + ffmpeg), gli
+asset finiti vengono pubblicati gratis su GitHub Pages.
 
 ## Come funziona
 
 1. Make (lo scenario giornaliero) prende l'ultimo post da Ghost e da Blogger.
-2. Chiama `POST /render` su questo servizio con i dati dei due articoli.
-3. Il servizio disegna le 4 slide via HTML/CSS (stesso stile approvato: vino/oro per
-   neuralagora.com, crema per blog.neuralagora.com) e le fotografa con un browser headless
-   (Playwright), salvandole come JPEG pubblici.
-4. Make prende i 4 URL restituiti e li passa al modulo Instagram "Create a carousel post".
+2. Invia un `repository_dispatch` (evento `render`) a questo repo con i dati dei due
+   articoli (stesso payload di prima, vedi sotto).
+3. La GitHub Action (`.github/workflows/render.yml`) esegue `render-daily.js`: disegna le
+   slide e il reel via HTML/CSS (Playwright headless) e li fotografa/registra, poi
+   converte i video con ffmpeg; pubblica tutto in `docs/img/` (GitHub Pages).
+4. Make recupera gli URL pubblici fissi (`.../img/cover.jpg`, `.../img/reel.mp4`, ecc.) e
+   li passa ai moduli Instagram/Facebook — `reel.mp4` va al modulo "Create a Reel Post".
+
+## Prossimi passi (non ancora fatto)
+
+- **Colonna sonora per `reel.mp4`**: va scelta una traccia royalty-free e passata a
+  `ffmpeg` in fase di conversione (`-i audio.mp3 -shortest`, mixata sul video già
+  renderizzato). Da decidere: traccia fissa o rotazione, e dove viene ospitato il file
+  audio.
+- **Scenario Make**: serve uno scenario (nuovo o il "Carosello giornaliero" riattivato)
+  che faccia il dispatch e poi pubblichi `reel.mp4` come Reel su Instagram/Facebook —
+  finora questo repo veniva chiamato solo dal vecchio scenario del carosello, disattivato
+  il 30/08/2026.
 
 ## Deploy su Railway
 

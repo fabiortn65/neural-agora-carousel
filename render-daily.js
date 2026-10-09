@@ -8,7 +8,7 @@ const os = require("os");
 const path = require("path");
 const { execFileSync } = require("child_process");
 const { chromium } = require("playwright");
-const { coverSlide, coverSlideVideo, ghostSlide, bloggerSlide, ctaSlide } = require("./templates");
+const { coverSlide, coverSlideVideo, ghostSlide, bloggerSlide, ctaSlide, reelVideo, REEL_TOTAL } = require("./templates");
 
 const OUT_DIR = path.join(__dirname, "docs", "img");
 
@@ -49,11 +49,11 @@ async function renderOne(browser, html, outPath) {
 // Cattura l'animazione CSS della copertina come video e lo converte in mp4
 // (H264, 1080x1350, sotto i 5Mbps richiesti da Instagram per i video nel
 // carosello). cover.jpg statico resta invariato per Facebook.
-async function renderVideo(browser, html, outPath, durationMs = 4500) {
+async function renderVideo(browser, html, outPath, durationMs = 4500, size = { width: 1080, height: 1350 }) {
   const videoDir = fs.mkdtempSync(path.join(os.tmpdir(), "carousel-video-"));
   const context = await browser.newContext({
-    viewport: { width: 1080, height: 1350 },
-    recordVideo: { dir: videoDir, size: { width: 1080, height: 1350 } },
+    viewport: size,
+    recordVideo: { dir: videoDir, size },
   });
   const page = await context.newPage();
   try {
@@ -111,6 +111,17 @@ async function renderVideo(browser, html, outPath, durationMs = 4500) {
     await renderOne(browser, ghostSlide(ghost), path.join(OUT_DIR, "ghost.jpg"));
     await renderOne(browser, bloggerSlide(blogger, blogger.image_url), path.join(OUT_DIR, "blogger.jpg"));
     await renderOne(browser, ctaSlide(), path.join(OUT_DIR, "cta.jpg"));
+
+    // Reel verticale 9:16 con tipografia cinetica (titolo/estratto animati) e
+    // Ken Burns sulle foto dei due articoli — vedi templates.js (reelVideo)
+    // per la timeline completa delle 4 scene.
+    await renderVideo(
+      browser,
+      reelVideo({ date: data.date, hook_headline: data.hook_headline, ghost, blogger }),
+      path.join(OUT_DIR, "reel.mp4"),
+      Math.round(REEL_TOTAL * 1000) + 300,
+      { width: 1080, height: 1920 }
+    );
   } finally {
     await browser.close();
   }

@@ -205,4 +205,174 @@ function ctaSlide() {
   `, style);
 }
 
-module.exports = { coverSlide, coverSlideVideo, ghostSlide, bloggerSlide, ctaSlide, truncate, escapeHtml };
+// Reel verticale 1080x1920 (9:16) con tipografia cinetica e Ken Burns sulle
+// foto dei due articoli. Un'unica pagina HTML con 4 "scene" sovrapposte
+// (copertina, Ghost, Blogger, CTA), ciascuna con la propria animazione di
+// opacità sincronizzata su una timeline assoluta (stessa logica di
+// coverSlideVideo, estesa all'intero reel). Catturata come video da
+// render-daily.js con Playwright recordVideo + ffmpeg, durata REEL_TOTAL.
+//
+// Timeline (secondi dall'inizio del video):
+//   0.0 – 2.8   copertina ferma (hook_headline in reveal parola per parola)
+//   2.8 – 3.2   dissolvenza verso Ghost
+//   3.2 – 12.8  slide Ghost (Ken Burns + titolo cinetico + estratto)
+//  12.8 – 13.2  dissolvenza verso Blogger
+//  13.2 – 22.8  slide Blogger (stesso trattamento, palette crema)
+//  22.8 – 23.2  dissolvenza verso CTA
+//  23.2 – 27.6  CTA finale ferma
+const REEL_T = {
+  coverStart: 0, coverFadeStart: 2.8, coverEnd: 3.2,
+  ghostFadeInEnd: 3.2, ghostHoldEnd: 12.8, ghostFadeOutEnd: 13.2,
+  bloggerFadeInEnd: 13.2, bloggerHoldEnd: 22.8, bloggerFadeOutEnd: 23.2,
+  ctaFadeInEnd: 23.2, total: 27.6,
+};
+const REEL_TOTAL = REEL_T.total;
+
+function pct(t) {
+  return `${((t / REEL_TOTAL) * 100).toFixed(4)}%`;
+}
+
+function reelVideo({ date, hook_headline, ghost, blogger }) {
+  const T = REEL_T;
+  const hookWords = escapeHtml(truncate(hook_headline, 90)).split(" ").filter(Boolean);
+  const hookSpans = hookWords
+    .map((w, i) => `<span class="rv-word" style="animation-delay:${(0.5 + i * 0.09).toFixed(2)}s">${w}&nbsp;</span>`)
+    .join("");
+
+  const ghostTitle = escapeHtml(truncate(ghost.title, 70));
+  const ghostWords = ghostTitle.split(" ").filter(Boolean);
+  const ghostWordStart = T.ghostFadeInEnd + 0.15;
+  const ghostWordSpans = ghostWords
+    .map((w, i) => `<span class="rv-word" style="animation-delay:${(ghostWordStart + i * 0.07).toFixed(2)}s">${w}&nbsp;</span>`)
+    .join("");
+  const ghostExcerptDelay = (ghostWordStart + ghostWords.length * 0.07 + 0.25).toFixed(2);
+  const ghostTagDelay = (T.ghostFadeInEnd + 0.05).toFixed(2);
+
+  const bloggerTitle = escapeHtml(truncate(blogger.title, 70));
+  const bloggerWords = bloggerTitle.split(" ").filter(Boolean);
+  const bloggerWordStart = T.bloggerFadeInEnd + 0.15;
+  const bloggerWordSpans = bloggerWords
+    .map((w, i) => `<span class="rv-word" style="animation-delay:${(bloggerWordStart + i * 0.07).toFixed(2)}s">${w}&nbsp;</span>`)
+    .join("");
+  const bloggerExcerptDelay = (bloggerWordStart + bloggerWords.length * 0.07 + 0.25).toFixed(2);
+  const bloggerBrandDelay = (T.bloggerFadeInEnd + 0.05).toFixed(2);
+
+  const style = `
+  html, body { width: 1080px; height: 1920px; background: #2A121D; }
+  .rv-scene { position: absolute; inset: 0; width: 1080px; height: 1920px; overflow: hidden; }
+  .rv-word { display: inline-block; opacity: 0; transform: translateY(26px); animation-name: rvWordUp; animation-duration: .6s; animation-timing-function: cubic-bezier(.2,.8,.2,1); animation-fill-mode: forwards; }
+  @keyframes rvWordUp { to { opacity: 1; transform: translateY(0); } }
+  @keyframes rvFadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* --- Scena 1: copertina --- */
+  .rv-cover { background: #2A121D; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 120px 90px; animation: rvCoverOpac ${REEL_TOTAL}s linear 1 forwards; }
+  @keyframes rvCoverOpac {
+    0% { opacity: 1; } ${pct(T.coverFadeStart)} { opacity: 1; } ${pct(T.coverEnd)} { opacity: 0; } 100% { opacity: 0; }
+  }
+  .rv-glow { position: absolute; top: 50%; left: 50%; width: 1500px; height: 1500px; margin: -750px 0 0 -750px; background: radial-gradient(circle, rgba(212,166,74,0.16) 0%, rgba(212,166,74,0) 62%); animation: rvPulse 4.5s ease-in-out infinite; }
+  @keyframes rvPulse { 0%, 100% { transform: scale(1); opacity: .75; } 50% { transform: scale(1.08); opacity: 1; } }
+  .rv-kicker { color: #e8c8a5; font-size: 26px; letter-spacing: 0.05em; margin-bottom: 20px; text-align: center; opacity: 0; animation: rvFadeUp .7s ease-out forwards .1s; }
+  .rv-wordmark { color: #b28e5f; font-size: 60px; letter-spacing: 0.22em; text-transform: uppercase; text-align: center; margin-bottom: 90px; opacity: 0; animation: rvFadeUp .7s ease-out forwards .1s; }
+  .rv-hook { color: #e8c8a5; font-size: 92px; line-height: 1.16; text-align: center; font-weight: 700; position: relative; z-index: 1; }
+  .rv-rule { width: 0; height: 2px; background: #b28e5f; margin-top: 44px; animation: rvGrowRule .7s ease-out forwards ${(0.5 + hookWords.length * 0.09 + 0.3).toFixed(2)}s; }
+  @keyframes rvGrowRule { to { width: 260px; } }
+
+  /* --- Scena 2: Ghost (neuralagora.com) --- */
+  .rv-ghost { background: #2A121D; animation: rvGhostOpac ${REEL_TOTAL}s linear 1 forwards; }
+  @keyframes rvGhostOpac {
+    0% { opacity: 0; } ${pct(T.coverFadeStart)} { opacity: 0; } ${pct(T.coverEnd)} { opacity: 1; }
+    ${pct(T.ghostHoldEnd)} { opacity: 1; } ${pct(T.ghostFadeOutEnd)} { opacity: 0; } 100% { opacity: 0; }
+  }
+  .rv-photo { position: absolute; inset: 0; width: 1080px; height: 1920px; object-fit: cover; transform-origin: center; }
+  .rv-ghost .rv-photo { animation: rvGhostZoom ${REEL_TOTAL}s linear 1 forwards; }
+  @keyframes rvGhostZoom {
+    0% { transform: scale(1); } ${pct(T.coverFadeStart)} { transform: scale(1); } ${pct(T.ghostFadeOutEnd)} { transform: scale(1.14); } 100% { transform: scale(1.14); }
+  }
+  .rv-scrim-wine { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(42,18,29,0.12) 0%, rgba(42,18,29,0.16) 30%, rgba(42,18,29,0.80) 62%, rgba(42,18,29,0.98) 100%); }
+  .rv-tag { position: absolute; top: 70px; left: 64px; background: #2A121D; color: #D4A64A; font-size: 28px; padding: 12px 30px; border-radius: 999px; letter-spacing: 0.04em; opacity: 0; animation: rvFadeUp .5s ease-out forwards var(--tag-delay, 0s); }
+  .rv-content { position: absolute; left: 0; right: 0; bottom: 0; padding: 70px 72px 100px 72px; }
+  .rv-title { color: #D4A64A; font-size: 68px; line-height: 1.12; font-weight: 700; margin-bottom: 32px; }
+  .rv-excerpt { color: #f5f0e6; font-size: 34px; line-height: 1.44; margin-bottom: 30px; opacity: 0; animation: rvFadeUp .6s ease-out forwards var(--excerpt-delay, 0s); }
+  .rv-site { color: #e8c8a5; font-size: 28px; letter-spacing: 0.04em; opacity: 0; animation: rvFadeUp .6s ease-out forwards var(--excerpt-delay, 0s); }
+
+  /* --- Scena 3: Blogger --- */
+  .rv-blogger { background: #E6DCC6; animation: rvBloggerOpac ${REEL_TOTAL}s linear 1 forwards; }
+  @keyframes rvBloggerOpac {
+    0% { opacity: 0; } ${pct(T.ghostHoldEnd)} { opacity: 0; } ${pct(T.ghostFadeOutEnd)} { opacity: 1; }
+    ${pct(T.bloggerHoldEnd)} { opacity: 1; } ${pct(T.bloggerFadeOutEnd)} { opacity: 0; } 100% { opacity: 0; }
+  }
+  .rv-blogger .rv-photo { animation: rvBloggerZoom ${REEL_TOTAL}s linear 1 forwards; }
+  @keyframes rvBloggerZoom {
+    0% { transform: scale(1); } ${pct(T.ghostHoldEnd)} { transform: scale(1); } ${pct(T.bloggerFadeOutEnd)} { transform: scale(1.14); } 100% { transform: scale(1.14); }
+  }
+  .rv-scrim-cream { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(230,220,198,0.10) 0%, rgba(230,220,198,0.14) 30%, rgba(230,220,198,0.84) 62%, rgba(230,220,198,0.97) 100%); }
+  .rv-brand { position: absolute; top: 66px; left: 60px; display: flex; align-items: center; gap: 16px; background: rgba(230,220,198,0.92); padding: 14px 30px 14px 20px; border-radius: 999px; opacity: 0; animation: rvFadeUp .5s ease-out forwards var(--brand-delay, 0s); }
+  .rv-dot { width: 32px; height: 32px; border-radius: 50%; background: #2A121D; }
+  .rv-brandtext { color: #2A121D; font-size: 30px; font-weight: 600; }
+  .rv-title-dark { color: #2A121D; font-size: 62px; line-height: 1.16; font-weight: 700; margin-bottom: 30px; }
+  .rv-excerpt-dark { color: #4a352c; font-size: 32px; line-height: 1.42; margin-bottom: 28px; opacity: 0; animation: rvFadeUp .6s ease-out forwards var(--excerpt-delay, 0s); }
+  .rv-site-dark { color: #723535; font-size: 28px; letter-spacing: 0.04em; opacity: 0; animation: rvFadeUp .6s ease-out forwards var(--excerpt-delay, 0s); }
+
+  /* --- Scena 4: CTA --- */
+  .rv-cta { display: flex; animation: rvCtaOpac ${REEL_TOTAL}s linear 1 forwards; }
+  @keyframes rvCtaOpac {
+    0% { opacity: 0; } ${pct(T.bloggerHoldEnd)} { opacity: 0; } ${pct(T.bloggerFadeOutEnd)} { opacity: 1; } 100% { opacity: 1; }
+  }
+  .rv-half { width: 540px; height: 1920px; }
+  .rv-wine { background: #2A121D; }
+  .rv-cream { background: #E6DCC6; }
+  .rv-cta-center { position: absolute; top: 900px; left: 0; width: 1080px; text-align: center; }
+  .rv-cta-wordmark { font-size: 88px; letter-spacing: 0.02em; }
+  .rv-cta-wordmark .n { color: #d8a85b; }
+  .rv-cta-wordmark .a { color: #723535; }
+  .rv-cta-line { font-size: 48px; font-style: italic; margin-top: 26px; }
+  .rv-cta-line .in { color: #f8d8c4; }
+  .rv-cta-line .bio { color: #723535; }
+  .rv-cta-foot { font-size: 28px; margin-top: 60px; color: #d8a85b; }
+  .rv-cta-foot .sep { color: #723535; }
+  `;
+
+  return page(`
+  <div class="rv-scene rv-cover">
+  <div class="rv-glow"></div>
+  <div class="rv-kicker">${escapeHtml(date)}</div>
+  <div class="rv-wordmark serif">Neural Agora</div>
+  <div class="rv-hook serif">${hookSpans}</div>
+  <div class="rv-rule"></div>
+  </div>
+
+  <div class="rv-scene rv-ghost">
+  <img class="rv-photo" src="${escapeHtml(ghost.image_url)}" onerror="this.style.display='none'" />
+  <div class="rv-scrim-wine"></div>
+  ${ghost.category ? `<div class="rv-tag" style="--tag-delay:${ghostTagDelay}s">${escapeHtml(ghost.category)}</div>` : ""}
+  <div class="rv-content">
+  <div class="rv-title serif">${ghostWordSpans}</div>
+  <div class="rv-excerpt" style="--excerpt-delay:${ghostExcerptDelay}s">${escapeHtml(truncate(ghost.excerpt, 140))}</div>
+  <div class="rv-site" style="--excerpt-delay:${ghostExcerptDelay}s">neuralagora.com</div>
+  </div>
+  </div>
+
+  <div class="rv-scene rv-blogger">
+  <img class="rv-photo" src="${escapeHtml(blogger.image_url)}" onerror="this.style.display='none'" />
+  <div class="rv-scrim-cream"></div>
+  <div class="rv-brand" style="--brand-delay:${bloggerBrandDelay}s"><div class="rv-dot"></div><div class="rv-brandtext">Neural Agora</div></div>
+  <div class="rv-content">
+  <div class="rv-title-dark serif">${bloggerWordSpans}</div>
+  <div class="rv-excerpt-dark" style="--excerpt-delay:${bloggerExcerptDelay}s">${escapeHtml(truncate(blogger.excerpt, 130))}</div>
+  <div class="rv-site-dark" style="--excerpt-delay:${bloggerExcerptDelay}s">blog.neuralagora.com</div>
+  </div>
+  </div>
+
+  <div class="rv-scene rv-cta">
+  <div class="rv-half rv-wine"></div>
+  <div class="rv-half rv-cream"></div>
+  <div class="rv-cta-center">
+  <div class="rv-cta-wordmark serif"><span class="n">NEURAL</span><span class="a">AGORA</span></div>
+  <div class="rv-cta-line serif"><span class="in">Link in</span><span class="bio"> bio</span></div>
+  <div class="rv-cta-foot serif">neuralagora.com<span class="sep"> · </span>blog.neuralagora.com</div>
+  </div>
+  </div>
+  `, style);
+}
+
+module.exports = { coverSlide, coverSlideVideo, ghostSlide, bloggerSlide, ctaSlide, reelVideo, REEL_TOTAL, truncate, escapeHtml };
