@@ -55,16 +55,27 @@ async function renderVideo(browser, html, outPath, durationMs = 4500, size = { w
     viewport: size,
     recordVideo: { dir: videoDir, size },
   });
+  const pageCreatedAt = Date.now();
   const page = await context.newPage();
   try {
     await page.setContent(html, { waitUntil: "networkidle", timeout: 30000 });
-    await page.waitForTimeout(durationMs);
+    // Playwright comincia a registrare dalla creazione della pagina, non da
+    // qui: il tempo speso ad aspettare "networkidle" (font Google, immagini
+    // di sfondo) e' gia' incluso nel video. Le animazioni CSS partono anch'esse
+    // da quell'istante (animation-duration assoluta), quindi a questo punto
+    // sono gia' "avanti" di networkWaitMs. Aspettiamo solo quanto manca per
+    // arrivare alla durata totale voluta, cosi' il video non si allunga di
+    // un tempo di rete imprevedibile (visto fino a +7s sul reel in test).
+    // La successiva -t in ffmpeg e' una seconda rete di sicurezza.
+    const networkWaitMs = Date.now() - pageCreatedAt;
+    await page.waitForTimeout(Math.max(0, durationMs - networkWaitMs));
     const video = page.video();
     await page.close();
     const webmPath = await video.path();
     execFileSync("ffmpeg", [
       "-y",
       "-i", webmPath,
+      "-t", (durationMs / 1000).toFixed(2),
       "-c:v", "libx264",
       "-pix_fmt", "yuv420p",
       "-profile:v", "high",
