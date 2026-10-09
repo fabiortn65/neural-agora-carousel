@@ -20,7 +20,7 @@ const OUT_DIR = path.join(__dirname, "docs", "img");
 const REEL_AUDIO_URL = "https://cdn.pixabay.com/audio/2026/06/09/audio_bc5cc02744.mp3";
 
 // Scarica la traccia audio e la mixa sotto il video già renderizzato: la
-// taglia alla durata esatta del reel, al 50% di volume (resta di sottofondo,
+// taglia alla durata esatta del reel, al 30% di volume (resta di sottofondo,
 // non deve coprire l'attenzione sul testo animato) con un fade-in di 1.5s
 // all'inizio e un fade-out di 2s alla fine cosi' non si interrompe di netto.
 // Il video resta invariato (-c:v copy), solo l'audio viene codificato in AAC.
@@ -35,7 +35,7 @@ async function addSoundtrack(videoPath, audioUrl, durationSec) {
       "-i", videoPath,
       "-i", tmpAudio,
       "-filter_complex",
-      `[1:a]atrim=0:${durationSec.toFixed(2)},afade=t=in:st=0:d=1.5,afade=t=out:st=${fadeOutStart.toFixed(2)}:d=2,volume=0.5[a]`,
+      `[1:a]atrim=0:${durationSec.toFixed(2)},afade=t=in:st=0:d=1.5,afade=t=out:st=${fadeOutStart.toFixed(2)}:d=2,volume=0.3[a]`,
       "-map", "0:v",
       "-map", "[a]",
       "-c:v", "copy",
