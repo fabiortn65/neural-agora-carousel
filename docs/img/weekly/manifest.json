@@ -1,0 +1,56 @@
+{
+  "article_count": 4,
+  "reel_url": "https://fabiortn65.github.io/neural-agora-carousel/img/weekly/reel.mp4?v=1791559717892",
+  "ig_files": [
+    {
+      "video_url": "https://fabiortn65.github.io/neural-agora-carousel/img/weekly/cover.mp4?v=1791559717892",
+      "media_type": "VIDEO"
+    },
+    {
+      "image_url": "https://fabiortn65.github.io/neural-agora-carousel/img/weekly/article-1.jpg?v=1791559717892",
+      "media_type": "IMAGE"
+    },
+    {
+      "image_url": "https://fabiortn65.github.io/neural-agora-carousel/img/weekly/article-2.jpg?v=1791559717892",
+      "media_type": "IMAGE"
+    },
+    {
+      "image_url": "https://fabiortn65.github.io/neural-agora-carousel/img/weekly/article-3.jpg?v=1791559717892",
+      "media_type": "IMAGE"
+    },
+    {
+      "image_url": "https://fabiortn65.github.io/neural-agora-carousel/img/weekly/article-4.jpg?v=1791559717892",
+      "media_type": "IMAGE"
+    },
+    {
+      "image_url": "https://fabiortn65.github.io/neural-agora-carousel/img/weekly/cta.jpg?v=1791559717892",
+      "media_type": "IMAGE"
+    }
+  ],
+  "fb_photos": [
+    {
+      "url": "https://fabiortn65.github.io/neural-agora-carousel/img/weekly/cover.jpg?v=1791559717892",
+      "type": "url"
+    },
+    {
+      "url": "https://fabiortn65.github.io/neural-agora-carousel/img/weekly/article-1.jpg?v=1791559717892",
+      "type": "url"
+    },
+    {
+      "url": "https://fabiortn65.github.io/neural-agora-carousel/img/weekly/article-2.jpg?v=1791559717892",
+      "type": "url"
+    },
+    {
+      "url": "https://fabiortn65.github.io/neural-agora-carousel/img/weekly/article-3.jpg?v=1791559717892",
+      "type": "url"
+    },
+    {
+      "url": "https://fabiortn65.github.io/neural-agora-carousel/img/weekly/article-4.jpg?v=1791559717892",
+      "type": "url"
+    },
+    {
+      "url": "https://fabiortn65.github.io/neural-agora-carousel/img/weekly/cta.jpg?v=1791559717892",
+      "type": "url"
+    }
+  ]
+}
