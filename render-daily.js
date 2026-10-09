@@ -8,9 +8,16 @@ const os = require("os");
 const path = require("path");
 const { execFileSync } = require("child_process");
 const { chromium } = require("playwright");
-const { coverSlide, coverSlideVideo, ghostSlide, bloggerSlide, ctaSlide, reelVideo, REEL_TOTAL } = require("./templates");
+const {
+  coverSlide, coverSlideVideo, ghostSlide, bloggerSlide, ctaSlide, reelVideo, REEL_TOTAL,
+  weeklyCoverSlide, weeklyCoverSlideVideo, articleSlide, weeklyReelVideo, WEEKLY_MAX_ARTICLES,
+} = require("./templates");
 
 const OUT_DIR = path.join(__dirname, "docs", "img");
+// Il recap settimanale vive in una sua sottocartella: non deve mai sovrascrivere
+// gli asset del carosello giornaliero (cover.jpg, reel.mp4, ecc. in OUT_DIR),
+// cosi' i due sistemi possono coesistere con URL pubblici stabili e distinti.
+const WEEKLY_OUT_DIR = path.join(OUT_DIR, "weekly");
 
 // Colonna sonora fissa del reel, scelta da Fabio: "Classical - Classical Song"
 // di The_Mountain (Pixabay Music, royalty-free). Scaricata ad ogni run
@@ -131,8 +138,66 @@ async function renderVideo(browser, html, outPath, durationMs = 4500, size = { w
   }
 }
 
+// Renderizza il recap settimanale: copertina + una slide per articolo
+// (max WEEKLY_MAX_ARTICLES) + CTA, piu' il reel verticale con lo stesso
+// trattamento Ken Burns/dissolvenza del reel giornaliero, generalizzato a
+// N scene. Colonna sonora identica (stesso REEL_AUDIO_URL).
+async function renderWeekly(browser, data) {
+  fs.mkdirSync(WEEKLY_OUT_DIR, { recursive: true });
+
+  const articles = Array.isArray(data.articles) ? data.articles.slice(0, WEEKLY_MAX_ARTICLES) : [];
+  if (articles.length === 0) {
+    throw new Error("Payload settimanale senza articles[] (serve almeno 1 articolo).");
+  }
+  const cover = { week_label: data.week_label, hook_headline: data.hook_headline, count: articles.length };
+
+  await renderOne(browser, weeklyCoverSlide(cover), path.join(WEEKLY_OUT_DIR, "cover.jpg"));
+  await renderVideo(browser, weeklyCoverSlideVideo(cover), path.join(WEEKLY_OUT_DIR, "cover.mp4"));
+
+  for (let i = 0; i < articles.length; i++) {
+    await renderOne(
+      browser,
+      articleSlide(articles[i], i + 1, articles.length),
+      path.join(WEEKLY_OUT_DIR, `article-${i + 1}.jpg`)
+    );
+  }
+  await renderOne(browser, ctaSlide(), path.join(WEEKLY_OUT_DIR, "cta.jpg"));
+
+  const { html, durationSec } = weeklyReelVideo({
+    week_label: data.week_label,
+    hook_headline: data.hook_headline,
+    articles,
+  });
+  await renderVideo(
+    browser,
+    html,
+    path.join(WEEKLY_OUT_DIR, "reel.mp4"),
+    Math.round((durationSec + 0.3) * 1000),
+    { width: 1080, height: 1920 }
+  );
+
+  return durationSec + 0.3;
+}
+
 (async () => {
   const data = readPayload();
+
+  if (data.mode === "weekly") {
+    const browser = await chromium.launch({
+      executablePath: process.env.TEST_CHROMIUM_PATH || undefined,
+      args: ["--no-sandbox", "--disable-dev-shm-usage"],
+    });
+    let reelDurationSec;
+    try {
+      reelDurationSec = await renderWeekly(browser, data);
+    } finally {
+      await browser.close();
+    }
+    await addSoundtrack(path.join(WEEKLY_OUT_DIR, "reel.mp4"), REEL_AUDIO_URL, reelDurationSec);
+    console.log("Recap settimanale generato in", WEEKLY_OUT_DIR);
+    return;
+  }
+
   fs.mkdirSync(OUT_DIR, { recursive: true });
 
  const ghost = {
