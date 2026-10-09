@@ -12,29 +12,30 @@ const { coverSlide, coverSlideVideo, ghostSlide, bloggerSlide, ctaSlide, reelVid
 
 const OUT_DIR = path.join(__dirname, "docs", "img");
 
-// Colonna sonora fissa del reel, scelta da Fabio: "Minimal Piano and Cello"
-// di Samuel F. Johanns (Pixabay Music, royalty-free, Content ID registrato
-// ma licenza libera). Scaricata ad ogni run direttamente dalla CDN Pixabay:
-// il runner di GitHub Actions ha accesso di rete pieno (a differenza del
-// container dell'assistente), quindi non serve commitare il file nel repo.
-const REEL_AUDIO_URL = "https://cdn.pixabay.com/audio/2022/04/12/audio_936a0da49f.mp3";
+// Colonna sonora fissa del reel, scelta da Fabio: "Classical - Classical Song"
+// di The_Mountain (Pixabay Music, royalty-free). Scaricata ad ogni run
+// direttamente dalla CDN Pixabay: il runner di GitHub Actions ha accesso di
+// rete pieno (a differenza del container dell'assistente), quindi non serve
+// commitare il file nel repo.
+const REEL_AUDIO_URL = "https://cdn.pixabay.com/audio/2026/06/09/audio_bc5cc02744.mp3";
 
-// Scarica la traccia audio e la mixa sotto il video già renderizzato:
-// la taglia alla durata esatta del reel e applica un fade-out di 2s finale
-// cosi' non si interrompe di netto. Il video resta invariato (-c:v copy),
-// solo l'audio viene codificato in AAC.
+// Scarica la traccia audio e la mixa sotto il video già renderizzato: la
+// taglia alla durata esatta del reel, al 50% di volume (resta di sottofondo,
+// non deve coprire l'attenzione sul testo animato) con un fade-in di 1.5s
+// all'inizio e un fade-out di 2s alla fine cosi' non si interrompe di netto.
+// Il video resta invariato (-c:v copy), solo l'audio viene codificato in AAC.
 async function addSoundtrack(videoPath, audioUrl, durationSec) {
   const tmpAudio = path.join(os.tmpdir(), `reel-audio-${Date.now()}.mp3`);
   const tmpOut = `${videoPath}.withaudio.mp4`;
   try {
     execFileSync("curl", ["-sS", "-L", "--fail", "-o", tmpAudio, audioUrl], { stdio: "inherit" });
-    const fadeStart = Math.max(0, durationSec - 2);
+    const fadeOutStart = Math.max(0, durationSec - 2);
     execFileSync("ffmpeg", [
       "-y",
       "-i", videoPath,
       "-i", tmpAudio,
       "-filter_complex",
-      `[1:a]atrim=0:${durationSec.toFixed(2)},afade=t=out:st=${fadeStart.toFixed(2)}:d=2,volume=0.85[a]`,
+      `[1:a]atrim=0:${durationSec.toFixed(2)},afade=t=in:st=0:d=1.5,afade=t=out:st=${fadeOutStart.toFixed(2)}:d=2,volume=0.5[a]`,
       "-map", "0:v",
       "-map", "[a]",
       "-c:v", "copy",

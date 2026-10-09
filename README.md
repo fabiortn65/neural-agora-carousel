@@ -10,9 +10,10 @@ giornalieri di Neural Agorà a partire dai dati dell'ultimo articolo di ciascun 
   (titoli che entrano parola per parola) ed effetto Ken Burns sulle foto dei due articoli —
   copertina → slide Ghost → slide Blogger → CTA, stesso stile vino/oro e crema del resto
   del brand. Nessuna voce narrante: solo testo animato (pensato per essere guardato anche
-  muto, come la maggior parte dei reel). Colonna sonora fissa: "Minimal Piano and Cello" di
-  Samuel F. Johanns (Pixabay Music, royalty-free), scaricata ad ogni run e mixata con
-  ffmpeg con fade-out finale di 2s — vedi `REEL_AUDIO_URL` in `render-daily.js`.
+  muto, come la maggior parte dei reel). Colonna sonora fissa: "Classical - Classical Song"
+  di The_Mountain (Pixabay Music, royalty-free), scaricata ad ogni run e mixata con ffmpeg
+  al 50% di volume (di sottofondo) con fade-in/fade-out — vedi `REEL_AUDIO_URL` in
+  `render-daily.js`.
 
 Nessun costo ricorrente: il rendering gira su GitHub Actions (Playwright + ffmpeg), gli
 asset finiti vengono pubblicati gratis su GitHub Pages.
