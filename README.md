@@ -18,6 +18,26 @@ giornalieri di Neural Agorà a partire dai dati dell'ultimo articolo di ciascun 
 Nessun costo ricorrente: il rendering gira su GitHub Actions (Playwright + ffmpeg), gli
 asset finiti vengono pubblicati gratis su GitHub Pages.
 
+## Recap settimanale
+
+Stesso motore, payload diverso: con `"mode": "weekly"` (invece dei campi `ghost_*`/
+`blogger_*` fissi) `render-daily.js` genera una copertina + una slide per ogni articolo
+pubblicato quella settimana (max 8, limite del carosello Instagram) + CTA + reel, salvati
+in `docs/img/weekly/` (cartella separata, non tocca mai gli asset giornalieri). Alla fine
+scrive anche `docs/img/weekly/manifest.json` con gli URL pronti nel formato esatto
+richiesto dai moduli Instagram/Facebook di Make (`ig_files`, `fb_photos`, `reel_url`),
+così lo scenario Make non deve ricostruire i nomi file da un conteggio variabile di
+articoli: gli basta una `GET` sul manifest dopo il render.
+
+Lo scenario Make **"Recap settimanale - Neural Agorà"** (programmato sabato 13:00):
+Ghost (`ghost:universal`, post dell'ultima settimana) + RSS Blogger grezzo → Gemini
+estrae e unisce i due elenchi, genera `week_label`/`hook_headline`/didascalie IG e FB →
+dispatch a questo repo → attesa 5 minuti → legge `manifest.json` → pubblica il carosello
+su **Instagram Neural Agorà + Instagram Fabio Ratini** (stesso file, 2 account) e su
+**Facebook Neural Agorà + Facebook "Fabio Ratini"** (pagina, non il profilo personale —
+Facebook non permette la pubblicazione automatica sui profili). Ogni destinazione ha un
+suo `onerror` che manda un'email di alert e lascia proseguire le altre.
+
 ## Come funziona
 
 1. Make (lo scenario giornaliero) prende l'ultimo post da Ghost e da Blogger.
